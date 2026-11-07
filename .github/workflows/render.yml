@@ -1,0 +1,116 @@
+# Renders a Remotion film on GitHub's servers instead of your laptop.
+# Each piece renders on its own machine at the same time, so the whole film
+# takes about as long as one piece.
+#
+# Run it: GitHub repo -> Actions -> "Render video" -> Run workflow.
+# Download: open the finished run -> Artifacts -> "<project>_pieces".
+name: Render video
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Which film to render
+        type: choice
+        options: [whale_doc, humpback_doc]
+        default: humpback_doc
+      pieces:
+        description: 'Pieces to render: "all", or numbers like "3 7"'
+        default: all
+
+jobs:
+  # Mixes the full soundtrack once and works out which pieces to render.
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 02_output/${{ inputs.project }}
+    outputs:
+      pieces: ${{ steps.list.outputs.pieces }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: 02_output/${{ inputs.project }}/package-lock.json
+      - run: npm ci
+      - id: list
+        env:
+          WANT: ${{ inputs.pieces }}
+        run: |
+          echo "pieces=$(node -e '
+            const n = require("./pieces.json").length;
+            const w = process.env.WANT.trim();
+            const all = Array.from({length: n}, (_, i) => i + 1);
+            const pick = w === "all" ? all : w.split(/[ ,]+/).map(Number).filter(x => x >= 1 && x <= n);
+            console.log(JSON.stringify(pick));
+          ')" >> "$GITHUB_OUTPUT"
+      - name: Mix soundtrack
+        run: npx remotion render src/index.ts Film film_audio.wav --codec=wav --log=error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: film_audio
+          path: 02_output/${{ inputs.project }}/film_audio.wav
+          retention-days: 1
+
+  # One machine per piece, all running in parallel.
+  piece:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        n: ${{ fromJSON(needs.plan.outputs.pieces) }}
+    defaults:
+      run:
+        working-directory: 02_output/${{ inputs.project }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: 02_output/${{ inputs.project }}/package-lock.json
+      - run: npm ci
+      - run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+      - uses: actions/download-artifact@v4
+        with:
+          name: film_audio
+          path: 02_output/${{ inputs.project }}
+      - name: Render piece ${{ matrix.n }}
+        env:
+          N: ${{ matrix.n }}
+          PROJECT: ${{ inputs.project }}
+        run: |
+          prefix="${PROJECT%_doc}_piece"
+          name="${prefix}_$(printf %02d "$N")"
+          start=$(node -p "require('./pieces.json')[$N-1][0]")
+          end=$(node -p "require('./pieces.json')[$N-1][1]")
+          seconds=$(node -p "($end-$start+1)/30")
+          mkdir -p out
+          npx remotion render src/index.ts Film "out/$name.silent.mp4" --frames="$start-$end" --codec=h264 --crf=16 --muted --concurrency=100% --log=error
+          ffmpeg -y -v error -i "out/$name.silent.mp4" -ss "$(node -p "$start/30")" -t "$seconds" -i film_audio.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -movflags +faststart "out/$name.mp4"
+          rm "out/$name.silent.mp4"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: piece_${{ matrix.n }}
+          path: 02_output/${{ inputs.project }}/out/*.mp4
+          retention-days: 1
+
+  # Collects every piece into one download.
+  collect:
+    needs: piece
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: piece_*
+          merge-multiple: true
+          path: pieces
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.project }}_pieces
+          path: pieces/*.mp4
+          retention-days: 7

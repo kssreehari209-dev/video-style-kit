@@ -1,0 +1,6 @@
+node_modules/
+out/
+# Rendered videos and mixes are made in the cloud, not stored in git
+02_output/*_pieces/
+02_output/*/film_audio.wav
+*.silent.mp4
