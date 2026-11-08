@@ -16,10 +16,10 @@ import {Brackets, ScaleLabel, Strike, Title} from "./ui";
 // title and pill beats must stay as they are.
 const CAPE = ll("capecod", -70.05, 41.95);
 const SPOT = ll("capecod", -70.25, 42.06); // off the tip of the Cape. Approximate: the notes give no position
-const A = {title: 14, pill: 26, dot: 66, name: 80, labelsOut: 124, dur: 150};
+const A = {title: 14, pill: 84, dot: 96, name: 150, labelsOut: 168, dur: 190};
 const camCape: Key[] = [
   [0, 1024, 520, 1.5],
-  [76, 1000, 515, 1.74],
+  [96, 1000, 515, 1.74],
   [A.dur - 6, SPOT[0], SPOT[1], 3.1, "ease"],
   [A.dur + 10, SPOT[0], SPOT[1], 3.3],
 ];
@@ -55,7 +55,7 @@ const CapeShot = ({f}: {f: number}) => {
 };
 
 // ---------- Shot 2: down the line from the boat to the sea floor, then the mouth shuts around him
-const B = {title: 12, drop: 20, land: 104, shade: 150, close: 170, shut: 184, dur: 194};
+const B = {title: 10, drop: 16, land: 70, shade: 122, close: 146, shut: 160, dur: 170};
 const SURFACE = 240;
 const FLOOR = 890;
 const HERE: P = [1000, 842];
@@ -132,7 +132,7 @@ const DiveShot = ({f}: {f: number}) => {
 
 // ---------- Shot 3: one world, the whale. The camera starts deep inside its mouth, where the picture is black,
 // and pulls all the way back out at the end.
-const K = {dark: 16, darkOut: 62, diver: 40, first: 76, shark: 96, teeth: 190, pain: 226, air: 262, strike: 316, listOut: 350, sq: 362, sqTitle: 368, reveal: 496, revealed: 576, inside: 540, box: 584, leave: 628, dur: 664};
+const K = {dark: 10, darkOut: 46, diver: 30, first: 51, shark: 80, teeth: 150, pain: 174, air: 206, strike: 232, listOut: 256, sq: 262, sqTitle: 268, reveal: 330, revealed: 394, inside: 386, box: 398, leave: 430, dur: 460};
 const WHALE = {x: 1810, y: 500, s: 1.7};
 const CENTER: P = [175, 50]; // middle of the mouth, in the whale's own units
 const WHERE: P = [WHALE.x - CENTER[0] * WHALE.s, WHALE.y + (CENTER[1] - 2) * WHALE.s]; // the diver, in the picture
@@ -141,8 +141,8 @@ const MOUTH = spline([[46, 30], [90, 6], [160, -2], [240, 10], [300, 40], [306, 
 // Keep the diver on screen all the way through the pull-back: his screen position is eased, and the camera solves for it.
 const END_Z = 1.04;
 const END: P = [(WHERE[0] - 960) * END_Z + 960, (WHERE[1] - 540) * END_Z + 540];
-const pullBack: Key[] = Array.from({length: 20}, (_, i) => {
-  const e = Easing.inOut(Easing.cubic)((i + 1) / 20);
+const pullBack: Key[] = Array.from({length: 16}, (_, i) => {
+  const e = Easing.inOut(Easing.cubic)((i + 1) / 16);
   const z = Math.exp(Math.log(10.8) * (1 - e) + Math.log(END_Z) * e);
   const [sx, sy] = [960 + (END[0] - 960) * e, 540 + (END[1] - 540) * e];
   return [K.reveal + (i + 1) * 4, WHERE[0] - (sx - 960) / z, WHERE[1] - (sy - 540) / z, z] as Key;
@@ -157,17 +157,17 @@ const camMouth: Key[] = [
   [K.dur, WHERE[0], WHERE[1], 2.6, "ease"],
   [K.dur + 10, WHERE[0], WHERE[1], 2.9],
 ];
-const pulses = [K.sq + 30, K.sq + 70, K.sq + 110];
+const pulses = [K.sq + 18, K.sq + 42, K.sq + 66];
 const squeezeAt = (f: number) => {
   // Wider than the view at first, so the screen is fully black. Then the walls come in.
   const tight = 1.25 - 0.75 * snap(f, K.sq, 28);
   const pulse = pulses.reduce((sum, p) => sum + (f >= p && f < p + 36 ? 0.14 * Math.sin(((f - p) / 36) * Math.PI) : 0), 0);
-  return tight - pulse + 0.12 * lerp(f, K.reveal, K.reveal + 50, 0, 1);
+  return tight - pulse + 0.12 * lerp(f, K.reveal, K.reveal + 40, 0, 1);
 };
 
 const Mouth = ({f}: {f: number}) => {
   const sq = squeezeAt(f);
-  const wall = lerp(f, K.reveal, K.reveal + 40, 150, 30);
+  const wall = lerp(f, K.reveal, K.reveal + 34, 150, 30);
   const shape = `translate(${CENTER[0]} ${CENTER[1]}) scale(${0.5 + 0.5 * sq} ${sq}) translate(${-CENTER[0]} ${-CENTER[1]})`;
   return (
     <g transform={`translate(${WHALE.x} ${WHALE.y}) scale(${-WHALE.s} ${WHALE.s})`}>
@@ -191,7 +191,7 @@ const Bubbles = ({f}: {f: number}) => (
   <g>
     {Array.from({length: 8}).map((_, i) => {
       const age = (f - K.air + i * 6) % 48;
-      if (f < K.air || f >= K.sq + 20) return null;
+      if (f < K.air || f >= K.sq + 10) return null;
       return <circle key={i} cx={WHERE[0] - 14 + Math.sin(i * 2.1 + age * 0.16) * 2.4} cy={WHERE[1] - 6 - age * 1.1} r={0.8 + (i % 3) * 0.5} fill="none" stroke="#C7D6DA" strokeWidth="0.32" opacity={0.75 * (1 - age / 48)} />;
     })}
   </g>
@@ -205,9 +205,16 @@ const MouthShot = ({f}: {f: number}) => {
   return (
     <AbsoluteFill>
       <Cam keys={camMouth} f={f} style={{background: LOCK}}>
-        <Dust frame={f} seed="mouth" />
+        {z < 3.2 && (
+          <div style={{position: "absolute", inset: 0, opacity: lerp(z, 2.6, 3.2, 1, 0)}}>
+            <Dust frame={f} seed="mouth" />
+          </div>
+        )}
         <Svg>
-          <W f={f} x={WHALE.x} y={WHALE.y} s={WHALE.s} id="mouth" flip amp={16} />
+          {/* Zoomed in far, the whale is drawn without its blurred light layers, which are too slow at that size.
+              The full drawing fades in over them as the camera pulls back. */}
+          {z > 2.6 && <W f={f} x={WHALE.x} y={WHALE.y} s={WHALE.s} id="mouthLite" flip amp={16} lite />}
+          {z < 3.6 && <W f={f} x={WHALE.x} y={WHALE.y} s={WHALE.s} id="mouth" flip amp={16} opacity={lerp(z, 2.6, 3.6, 1, 0)} />}
           <Mouth f={f} />
           <Bubbles f={f} />
           <g opacity={snap(f, K.diver, 26) * (1 - snap(f, K.dur - 8, 8))}>
@@ -291,5 +298,4 @@ export const s2: Shot[] = [
       ["whale_song", K.reveal, 0.5], ["ui_pop", K.inside], ["thud", K.revealed, 0.9], ["ui_pop", K.box], ["ui_alert", K.box + 18, 0.5],
     ],
   },
-  {dur: 150, C: GripShot, cam: camGrip, cues: [["thud", 0, 0.5]]},
 ];

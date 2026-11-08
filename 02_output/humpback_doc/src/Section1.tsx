@@ -22,9 +22,9 @@ const START = ll("arabian", 57.6, 17.6); // off Oman. Exact tagging spot not in 
 const CTRL: [number, number] = [1010, 640];
 
 const M = {
-  dot: 10, title: 20, kannur: 72, km50: 118, signal: 182, track: 196,
-  rewind: 262, rewound: 322, oman: 330, luban: 354, titleOut: 250,
-  play: 396, played: 546, cross: 402, kerala: 550, push: 562, dur: 600,
+  dot: 10, title: 20, kannur: 100, km50: 170, signal: 236, track: 250,
+  rewind: 280, rewound: 334, oman: 304, luban: 356, titleOut: 268,
+  play: 424, played: 574, cross: 428, kerala: 578, push: 590, dur: 600,
 };
 
 const route = (t: number): [number, number] => {
@@ -52,11 +52,11 @@ const camMap: Key[] = [
   [0, SIGNAL[0] + 8, SIGNAL[1], 6.2],
   [66, SIGNAL[0] + 8, SIGNAL[1], 5.6],
   [110, SIGNAL[0] + 12, SIGNAL[1] - 4, 5, "ease"],
-  [180, SIGNAL[0] + 12, SIGNAL[1] - 4, 4.3],
-  [250, SIGNAL[0], SIGNAL[1], 3.8, "ease"],
+  [200, SIGNAL[0] + 12, SIGNAL[1] - 4, 4.3],
+  [270, SIGNAL[0], SIGNAL[1], 3.8, "ease"],
   [M.rewound, START[0] + 40, START[1] - 110, 2.5, "ease"],
   [M.play, START[0] + 60, START[1] - 110, 2.2],
-  [470, 960, 540, 1, "ease"],
+  [500, 960, 540, 1, "ease"],
   [M.played, 960, 540, 1.04],
   [M.dur + 10, SIGNAL[0], SIGNAL[1], 2.6, "ease"],
 ];
@@ -118,8 +118,8 @@ const MapShot = ({f}: {f: number}) => {
         <MapPill text="ഉപഗ്രഹ സിഗ്നൽ" at={SIGNAL} z={z} f={f} start={M.signal + 12} dx={-20} dy={-168} out={M.rewind} size={40} />
         <MapPill text="ഒമാൻ" at={ll("arabian", 54.6, 19.6)} z={z} f={f} start={M.oman} out={M.played} />
         <MapPill text="ലുബാൻ" at={START} z={z} f={f} start={M.luban} dx={0} dy={84} out={M.play + 8} size={44} color={C.green} />
-        <MapPill text="അറബിക്കടൽ" at={ll("arabian", 65.2, 11.2)} z={z} f={f} start={470} size={34} color={C.dim} out={M.dur - 12} />
-        <MapPill text="ഇന്ത്യ" at={ll("arabian", 77.6, 18.6)} z={z} f={f} start={476} size={34} color={C.dim} out={M.dur - 12} />
+        <MapPill text="അറബിക്കടൽ" at={ll("arabian", 65.2, 11.2)} z={z} f={f} start={496} size={34} color={C.dim} out={M.dur - 12} />
+        <MapPill text="ഇന്ത്യ" at={ll("arabian", 77.6, 18.6)} z={z} f={f} start={502} size={34} color={C.dim} out={M.dur - 12} />
         <MapPill text="കേരളം" at={KANNUR} z={z} f={f} start={M.kerala} dx={150} dy={36} out={M.dur - 12} />
         <Out f={f} at={M.titleOut}>
           <Title text="2017 · ക്രിസ്മസ് രാത്രി" frame={f} start={M.title} />
@@ -147,15 +147,13 @@ const MapShot = ({f}: {f: number}) => {
 };
 
 // ---------- Shot 2: Luban under water, then the pull-back to the boat
-const L = {title: 14, titleOut: 92, mouth: 96, open: 104, pill: 118, close: 170, song: 190, songOut: 262, boat: 262, people: 276, gentle: 344, dur: 420};
+const L = {title: 14, titleOut: 80, mouth: 82, open: 86, pill: 91, close: 112, song: 114, songOut: 146, boat: 140, people: 148, gentle: 234, dur: 330};
 const camSea: Key[] = [
   [0, 1040, 700, 1.5],
   [L.mouth - 2, 1100, 690, 1.56],
   [L.mouth + 10, 1370, 700, 2.7, "snap"],
   [L.close, 1370, 700, 2.8],
-  [L.close + 26, 1120, 690, 1.42, "ease"],
-  [L.boat - 4, 1120, 680, 1.48],
-  [L.boat + 42, 960, 540, 1, "ease"],
+  [L.boat + 46, 960, 540, 1, "ease"],
   [L.dur + 10, 960, 556, 1.05],
 ];
 
@@ -182,14 +180,14 @@ const SeaShot = ({f}: {f: number}) => {
       <Out f={f} at={L.titleOut}>
         <Title text="ലുബാൻ: ഒരു ഹംപ്ബാക്ക് തിമിംഗലം" frame={f} start={L.title} />
       </Out>
-      <Out f={f} at={L.close + 6}>
+      <Out f={f} at={L.song}>
         <Fixed>
           <Pill text="പല്ലില്ല" x={960} y={196} frame={f} start={L.pill} size={56} />
         </Fixed>
       </Out>
       <Out f={f} at={L.songOut}>
         <Fixed>
-          <Pill text="പാട്ടുപാടും" x={960} y={196} frame={f} start={L.song + 6} size={56} />
+          <Pill text="പാട്ടുപാടും" x={960} y={196} frame={f} start={L.song + 8} size={56} />
         </Fixed>
       </Out>
       <Out f={f} at={L.gentle - 6}>
@@ -203,7 +201,7 @@ const SeaShot = ({f}: {f: number}) => {
 };
 
 // ---------- Shot 3: the turn. Lock-on view: a lone diver, and a mouth coming up from below
-const D = {title: 8, brackets: 24, land: 54, rise: 62, line: 86, shut: 164, dur: 180};
+const D = {title: 14, brackets: 30, land: 60, rise: 66, line: 114, shut: 166, dur: 180};
 const camTurn: Key[] = [
   [0, 960, 570, 1.3],
   [D.rise, 960, 550, 1.14],

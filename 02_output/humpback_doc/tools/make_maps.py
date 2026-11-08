@@ -56,6 +56,12 @@ MAPS = {
     # name: west lon, east lon, center lat. The frame is 1920 x 1080 in Mercator.
     "arabian": (47.0, 83.0, 15.0),
     "capecod": (-73.2, -67.2, 42.0),
+    "magellan": (-76.0, -66.0, -53.0),
+    "newhampshire": (-72.6, -68.6, 43.0),
+    "sydney": (149.6, 153.6, -33.9),
+    "ningaloo": (106.0, 126.0, -23.0),
+    "cook": (-166.0, -154.0, -21.0),
+    "pacific": (138.0, 228.0, -20.0),
 }
 res = {}
 for name, (w, e, clat) in MAPS.items():
@@ -63,7 +69,9 @@ for name, (w, e, clat) in MAPS.items():
     cy = merc(clat)
     proj = lambda lon, lat: ((lon - w) * k, 540 - (merc(max(-85, min(85, lat))) - cy) * k)
     d = []
-    for r in rings:
+    # Maps that run past 180 E also need the western-hemisphere land moved 360 degrees east.
+    pool = rings + ([[(p[0] + 360, p[1]) for p in r] for r in rings if max(p[0] for p in r) <= 0] if e > 180 else [])
+    for r in pool:
         lons = [p[0] for p in r]
         if max(lons) < w - 1 or min(lons) > e + 1: continue
         pr = [proj(*p) for p in r]

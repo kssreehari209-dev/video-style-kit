@@ -134,9 +134,9 @@ export const Svg = ({children, style}: {children: React.ReactNode; style?: React
 );
 
 // Origin is the whale's snout, so x and y say where its nose is.
-export const W = ({f, x, y, s, id, r = 0, flip = false, amp = 34, opacity = 1, gape = 0}: {f: number; x: number; y: number; s: number; id: string; r?: number; flip?: boolean; amp?: number; opacity?: number; gape?: number}) => (
+export const W = ({f, x, y, s, id, r = 0, flip = false, amp = 34, opacity = 1, gape = 0, lite = false, swell = 0}: {f: number; x: number; y: number; s: number; id: string; r?: number; flip?: boolean; amp?: number; opacity?: number; gape?: number; lite?: boolean; swell?: number}) => (
   <g transform={`translate(${x} ${y}) rotate(${r}) scale(${flip ? -s : s} ${s})`} opacity={opacity}>
-    <Humpback frame={f} id={id} amp={amp} gape={gape} />
+    <Humpback frame={f} id={id} amp={amp} gape={gape} lite={lite} swell={swell} />
   </g>
 );
 
@@ -169,3 +169,15 @@ export const Row = ({text, y, f, start, x = 480, size = 56, color = C.dim}: {tex
 };
 
 export const Fade = ({p}: {p: number}) => <AbsoluteFill style={{background: "#010304", opacity: p * 0.93}} />;
+
+// Shots written in film frames. `from` is the shot's first frame; each shot runs until the next one starts,
+// the last until `end`. Components get F, the film frame, so beats can be narration times from voice.ts.
+export type AShot = {from: number; C: React.FC<{F: number}>; link?: Link; cues?: Cue[]};
+export const seq = (list: AShot[], end: number): Shot[] =>
+  list.map((s, k) => {
+    const to = k + 1 < list.length ? list[k + 1].from : end;
+    if (to <= s.from) throw new Error(`shot at ${s.from} has no length`);
+    const Comp = s.C;
+    const C = ({f}: {f: number}) => <Comp F={f + s.from} />;
+    return {dur: to - s.from, C, link: s.link, cues: (s.cues ?? []).map(([n, fr, v]) => [n, fr - s.from, v] as Cue)};
+  });

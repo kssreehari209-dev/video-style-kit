@@ -56,10 +56,24 @@ const bumpy = (pts: P[]) => {
 
 // Still outline of the body, for clipping things drawn inside the whale.
 export const OUTLINE = spline([...TOP, ...REAR_BOTTOM, ...FRONT_BOTTOM.slice(1)], true);
+// The long flipper on its own, local to the shoulder, for close-ups.
+export const FIN_PATH = spline([...bumpy(FIN_LEAD), ...FIN_TRAIL], true);
 
-type Props = {frame: number; id: string; speed?: number; amp?: number; gape?: number; finSwing?: number; silhouette?: boolean; glow?: number};
+type Props = {frame: number; id: string; speed?: number; amp?: number; gape?: number; finSwing?: number; silhouette?: boolean; glow?: number; lite?: boolean; swell?: number};
 
-export const Humpback = ({frame, id, speed = 0.07, amp = 34, gape = 0, finSwing = 7, silhouette = false}: Props) => {
+// Underside of the body, snout to tail, for the throat pouch.
+const UNDER: P[] = [...[...FRONT_BOTTOM].reverse(), ...[...REAR_BOTTOM].reverse().slice(1)];
+const underY = (x: number) => {
+  for (let i = 0; i < UNDER.length - 1; i++) {
+    const [a, b] = [UNDER[i], UNDER[i + 1]];
+    if (x >= a[0] && x <= b[0]) return a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0]);
+  }
+  return UNDER[UNDER.length - 1][1];
+};
+
+// lite drops the blurred light layers. Use it when the camera is zoomed in far: a blur that large is very slow to draw.
+// swell (0 to 1) fills the pleated throat like a balloon.
+export const Humpback = ({frame, id, speed = 0.07, amp = 34, gape = 0, finSwing = 7, silhouette = false, lite = false, swell = 0}: Props) => {
   const phase = frame * speed;
   const bend = (pts: P[]): P[] => pts.map(([x, y]) => [x, y + wave(x, phase, amp)]);
   const jawAngle = 24 * gape;
@@ -167,19 +181,19 @@ export const Humpback = ({frame, id, speed = 0.07, amp = 34, gape = 0, finSwing 
         {/* Body sits lower than the rim layer, leaving a thin rim light along the back. */}
         <path d={upper} fill={`url(#${id}-fade)`} transform="translate(2 4)" />
         {/* Pale belly fading back from the throat */}
-        <path d={spline([[290, 60], [380, 70], [470, 82], [540, 110], [440, 140], [290, 140]], true)} fill={PALE} opacity="0.62" filter={`url(#${id}-glow)`} />
-        <path d={back} stroke="#62676C" strokeWidth="60" fill="none" opacity="0.5" transform="translate(0 36)" filter={`url(#${id}-soft)`} />
-        <ellipse cx="130" cy="-16" rx="96" ry="22" fill="#6B7075" opacity="0.34" filter={`url(#${id}-soft)`} />
-        <path d={belly} stroke="#000" strokeWidth="70" fill="none" opacity="0.26" transform="translate(0 -6)" filter={`url(#${id}-soft)`} />
-        <path d={belly} stroke={RIM} strokeWidth="10" fill="none" opacity="0.7" filter={`url(#${id}-glow)`} />
+        {!lite && <path d={spline([[290, 60], [380, 70], [470, 82], [540, 110], [440, 140], [290, 140]], true)} fill={PALE} opacity="0.62" filter={`url(#${id}-glow)`} />}
+        {!lite && <path d={back} stroke="#62676C" strokeWidth="60" fill="none" opacity="0.5" transform="translate(0 36)" filter={`url(#${id}-soft)`} />}
+        {!lite && <ellipse cx="130" cy="-16" rx="96" ry="22" fill="#6B7075" opacity="0.34" filter={`url(#${id}-soft)`} />}
+        {!lite && <path d={belly} stroke="#000" strokeWidth="70" fill="none" opacity="0.26" transform="translate(0 -6)" filter={`url(#${id}-soft)`} />}
+        {!lite && <path d={belly} stroke={RIM} strokeWidth="10" fill="none" opacity="0.7" filter={`url(#${id}-glow)`} />}
         {GROOVES.map((i) => (
           <path key={i} d={groove(i, 300, 470)} stroke={LINE} strokeWidth="2.6" strokeLinecap="round" fill="none" opacity="0.5" />
         ))}
         {/* Soft shadow the flipper casts on the flank */}
         <g transform={`translate(${SHOULDER[0] + 10} ${SHOULDER[1] - 16}) rotate(${finTurn})`}>
-          <path d={fin} fill="#000" opacity="0.34" filter={`url(#${id}-glow)`} />
+          {!lite && <path d={fin} fill="#000" opacity="0.34" filter={`url(#${id}-glow)`} />}
         </g>
-        <rect x="0" y="-140" width="1000" height="300" filter={`url(#${id}-grain)`} opacity="0.11" />
+        {!lite && <rect x="0" y="-140" width="1000" height="300" filter={`url(#${id}-grain)`} opacity="0.11" />}
       </g>
 
       {gape > 0 && (
@@ -204,6 +218,24 @@ export const Humpback = ({frame, id, speed = 0.07, amp = 34, gape = 0, finSwing 
       <circle cx="288" cy="24" r="5.5" fill="#050607" />
       <circle cx="286.4" cy="22.4" r="1.5" fill="#F1EFEB" />
 
+      {swell > 0 && (() => {
+        const xs: number[] = [];
+        for (let x = 20; x <= 600; x += 20) xs.push(x);
+        const sag = (x: number) => swell * 120 * Math.pow(Math.sin((Math.PI * (x - 20)) / 580), 0.8);
+        const top: P[] = xs.map((x) => [x, underY(x) - 30]);
+        const bot: P[] = xs.map((x) => [x, underY(x) + sag(x)]);
+        const pouch = spline([...top, ...[...bot].reverse()], true);
+        return (
+          <g>
+            <path d={pouch} fill={`url(#${id}-throat)`} />
+            {[1, 2, 3, 4, 5, 6].map((k) => (
+              <path key={k} d={spline(xs.map((x) => [x, underY(x) - 4 + (sag(x) + 4) * (k / 7)] as P), false)} stroke={LINE} strokeWidth="2.6" fill="none" opacity="0.5" />
+            ))}
+            <path d={spline(bot, false)} stroke="#B9BDBC" strokeWidth="3" fill="none" opacity="0.5" />
+          </g>
+        );
+      })()}
+
       {/* Lower jaw and throat: this part drops when the mouth opens */}
       <g transform={jaw}>
         <path d={lower} fill={`url(#${id}-throat)`} />
@@ -211,7 +243,7 @@ export const Humpback = ({frame, id, speed = 0.07, amp = 34, gape = 0, finSwing 
           {GROOVES.map((i) => (
             <path key={i} d={groove(i, 30, 306)} stroke={LINE} strokeWidth="2.6" strokeLinecap="round" fill="none" opacity="0.5" />
           ))}
-          <path d={spline(MOUTH, false)} stroke="#000" strokeWidth="26" fill="none" opacity="0.32" transform="translate(0 12)" filter={`url(#${id}-glow)`} />
+          {!lite && <path d={spline(MOUTH, false)} stroke="#000" strokeWidth="26" fill="none" opacity="0.32" transform="translate(0 12)" filter={`url(#${id}-glow)`} />}
         </g>
         {KNOBS_CHIN.map(([x, y, r]) => (
           <g key={`${x}`}>
